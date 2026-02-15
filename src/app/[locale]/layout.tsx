@@ -1,13 +1,13 @@
-import type { ReactNode } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
+import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 import { QueryProvider } from "@/providers/query-provider";
 import "../globals.css";
 
 export const metadata = {
-	title: "Taskboard — Modern Project Flow",
-	description: "A beautifully crafted task management experience",
+	title: "Calendar — Modern Schedule",
+	description: "A beautifully crafted calendar experience",
 };
 
 export default async function LocaleLayout({

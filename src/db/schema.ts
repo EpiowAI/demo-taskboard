@@ -1,18 +1,24 @@
 import { pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
-export const taskStatusEnum = pgEnum("task_status", ["todo", "in_progress", "done"]);
+export const eventColorEnum = pgEnum("event_color", [
+	"blue",
+	"purple",
+	"rose",
+	"amber",
+	"emerald",
+	"cyan",
+]);
 
-export const taskPriorityEnum = pgEnum("task_priority", ["low", "medium", "high"]);
-
-export const tasks = pgTable("tasks", {
+export const events = pgTable("events", {
 	id: uuid("id").defaultRandom().primaryKey(),
 	title: text("title").notNull(),
 	description: text("description"),
-	status: taskStatusEnum("status").notNull().default("todo"),
-	priority: taskPriorityEnum("priority").notNull().default("medium"),
+	startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+	endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+	color: eventColorEnum("color").notNull().default("blue"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export type Task = typeof tasks.$inferSelect;
-export type NewTask = typeof tasks.$inferInsert;
+export type CalendarEvent = typeof events.$inferSelect;
+export type NewEvent = typeof events.$inferInsert;

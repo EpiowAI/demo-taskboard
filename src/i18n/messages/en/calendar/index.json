@@ -1,0 +1,19 @@
+{
+	"title": "Calendar",
+	"subtitle": "Your schedule, beautifully organized.",
+	"addEvent": "New Event",
+	"newEvent": "New Event",
+	"eventTitle": "Title",
+	"eventTitlePlaceholder": "Meeting with the team…",
+	"startTime": "Start",
+	"endTime": "End",
+	"description": "Notes",
+	"descriptionPlaceholder": "Optional details…",
+	"color": "Color",
+	"createEvent": "Create Event",
+	"creating": "Creating…",
+	"eventCreated": "Event created!",
+	"noEvents": "Nothing scheduled",
+	"clickToAdd": "Tap + to add an event",
+	"delete": "Delete"
+}

@@ -1,0 +1,19 @@
+{
+	"title": "日曆",
+	"subtitle": "你嘅行程，一目了然。",
+	"addEvent": "新增活動",
+	"newEvent": "新增活動",
+	"eventTitle": "標題",
+	"eventTitlePlaceholder": "同團隊開會…",
+	"startTime": "開始",
+	"endTime": "結束",
+	"description": "備註",
+	"descriptionPlaceholder": "額外詳情（可選）…",
+	"color": "顏色",
+	"createEvent": "建立活動",
+	"creating": "建立中…",
+	"eventCreated": "活動已建立！",
+	"noEvents": "冇行程",
+	"clickToAdd": "撳 + 新增活動",
+	"delete": "刪除"
+}
