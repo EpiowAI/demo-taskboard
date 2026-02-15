@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { CreateTaskType, TaskType, UpdateTaskType } from "../schemas/task.schema";
+import type { CreateTaskInput, TaskType, UpdateTaskType } from "../schemas/task.schema";
 
 const TASKS_KEY = ["tasks"] as const;
 
@@ -18,7 +18,7 @@ export function useTasks() {
 export function useCreateTask() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: async (input: CreateTaskType) => {
+		mutationFn: async (input: CreateTaskInput) => {
 			const res = await fetch("/api/tasks", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },

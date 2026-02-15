@@ -16,7 +16,7 @@ export const TaskSchema = z.object({
 export const CreateTaskSchema = z.object({
 	title: z.string().min(1, "Title is required").max(200),
 	description: z.string().max(2000).optional(),
-	priority: TaskPriority.optional().default("medium"),
+	priority: TaskPriority.default("medium"),
 });
 
 export const UpdateTaskSchema = z.object({
@@ -27,5 +27,6 @@ export const UpdateTaskSchema = z.object({
 });
 
 export type TaskType = z.infer<typeof TaskSchema>;
+export type CreateTaskInput = z.input<typeof CreateTaskSchema>;
 export type CreateTaskType = z.infer<typeof CreateTaskSchema>;
 export type UpdateTaskType = z.infer<typeof UpdateTaskSchema>;

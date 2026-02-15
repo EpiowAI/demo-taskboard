@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useCreateTask } from "../hooks/use-tasks";
-import { CreateTaskSchema, type CreateTaskType } from "../schemas/task.schema";
+import { CreateTaskSchema, type CreateTaskInput } from "../schemas/task.schema";
 
 export function TaskForm() {
 	const t = useTranslations("tasks");
@@ -16,7 +16,7 @@ export function TaskForm() {
 		handleSubmit,
 		reset,
 		formState: { errors },
-	} = useForm<CreateTaskType>({
+	} = useForm<CreateTaskInput>({
 		resolver: zodResolver(CreateTaskSchema),
 		defaultValues: { title: "", priority: "medium" },
 	});
