@@ -1,1 +1,40 @@
 @import "tailwindcss";
+
+@theme {
+  --color-surface: oklch(0.145 0.005 285);
+  --color-surface-raised: oklch(0.18 0.008 285);
+  --color-surface-overlay: oklch(0.22 0.01 285);
+  --color-border-subtle: oklch(0.28 0.01 285);
+  --color-border-default: oklch(0.35 0.015 285);
+  --color-text-primary: oklch(0.95 0.005 285);
+  --color-text-secondary: oklch(0.65 0.01 285);
+  --color-text-muted: oklch(0.5 0.01 285);
+  --color-accent: oklch(0.7 0.18 265);
+  --color-accent-hover: oklch(0.75 0.2 265);
+  --color-success: oklch(0.72 0.17 155);
+  --color-warning: oklch(0.78 0.15 80);
+  --color-danger: oklch(0.65 0.2 25);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  font-feature-settings: "ss01", "ss02", "cv01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border-subtle); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-border-default); }
+
+/* Glass morphism utility */
+.glass {
+  background: oklch(0.18 0.008 285 / 0.6);
+  backdrop-filter: blur(24px) saturate(1.2);
+  border: 1px solid oklch(0.35 0.015 285 / 0.3);
+}
