@@ -1,128 +1,196 @@
 "use client";
 
-import { addMonths, endOfMonth, format, isSameDay, startOfMonth, subMonths } from "date-fns";
-import { AnimatePresence, motion } from "motion/react";
+import { addMonths, endOfMonth, format, startOfMonth, subMonths } from "date-fns";
+import { AnimatePresence } from "motion/react";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { DayPicker } from "react-day-picker";
-import { useEvents } from "../hooks/use-events";
-import type { EventType } from "../schemas/event.schema";
+import {
+	useCreateEvent,
+	useDeleteEvent,
+	useEvents,
+	useUpdateEvent,
+} from "@/features/calendar/hooks/use-events";
+import type { CreateEventInput, EventType } from "@/features/calendar/schemas/event.schema";
 import { DayDetail } from "./day-detail";
+import { getColorClasses } from "./event-card";
 import { EventForm } from "./event-form";
-
-const colorMap: Record<string, string> = {
-	blue: "bg-accent",
-	purple: "bg-purple-400",
-	rose: "bg-rose-400",
-	amber: "bg-amber-400",
-	emerald: "bg-emerald-400",
-	cyan: "bg-cyan-400",
-};
 
 export function CalendarView() {
 	const t = useTranslations("calendar");
-	const [currentMonth, setCurrentMonth] = useState(new Date());
-	const [selectedDay, setSelectedDay] = useState<Date>(new Date());
-	const [showForm, setShowForm] = useState(false);
+	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+	const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+	const [formOpen, setFormOpen] = useState(false);
+	const [editEvent, setEditEvent] = useState<EventType | null>(null);
 
 	const from = startOfMonth(currentMonth).toISOString();
 	const to = endOfMonth(currentMonth).toISOString();
-	const { data: events = [] } = useEvents(from, to);
+	const { data: events = [], isLoading } = useEvents(from, to);
 
-	// Group events by day
-	const eventsByDay = useMemo(() => {
-		const map = new Map<string, EventType[]>();
-		for (const ev of events) {
-			const key = format(new Date(ev.startAt), "yyyy-MM-dd");
-			if (!map.has(key)) map.set(key, []);
-			map.get(key)!.push(ev);
+	const createMutation = useCreateEvent();
+	const updateMutation = useUpdateEvent();
+	const deleteMutation = useDeleteEvent();
+
+	// Map days to their event colors for dots
+	const dayEventMap = useMemo(() => {
+		const map = new Map<string, string[]>();
+		for (const event of events) {
+			const key = format(new Date(event.startAt), "yyyy-MM-dd");
+			const colors = map.get(key) ?? [];
+			if (!colors.includes(event.color)) colors.push(event.color);
+			map.set(key, colors);
 		}
 		return map;
 	}, [events]);
 
-	const selectedDayKey = format(selectedDay, "yyyy-MM-dd");
-	const selectedEvents = eventsByDay.get(selectedDayKey) || [];
+	const handleDayClick = useCallback((day: Date) => {
+		setSelectedDate(day);
+	}, []);
+
+	const handleAddEvent = useCallback(() => {
+		setEditEvent(null);
+		setFormOpen(true);
+	}, []);
+
+	const handleEditEvent = useCallback((event: EventType) => {
+		setEditEvent(event);
+		setFormOpen(true);
+	}, []);
+
+	const handleDeleteEvent = useCallback(
+		(id: string) => {
+			deleteMutation.mutate(id);
+		},
+		[deleteMutation],
+	);
+
+	const handleFormSubmit = useCallback(
+		(data: CreateEventInput) => {
+			if (editEvent) {
+				updateMutation.mutate(
+					{ id: editEvent.id, ...data },
+					{ onSuccess: () => setFormOpen(false) },
+				);
+			} else {
+				createMutation.mutate(data, {
+					onSuccess: () => setFormOpen(false),
+				});
+			}
+		},
+		[editEvent, createMutation, updateMutation],
+	);
+
+	const handlePrevMonth = () => setCurrentMonth((prev) => subMonths(prev, 1));
+	const handleNextMonth = () => setCurrentMonth((prev) => addMonths(prev, 1));
+	const handleToday = () => {
+		const today = new Date();
+		setCurrentMonth(today);
+		setSelectedDate(today);
+	};
 
 	return (
-		<div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
-			{/* Calendar */}
+		<div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8">
+			{/* Calendar panel */}
 			<div className="glass rounded-3xl p-6">
 				{/* Month navigation */}
-				<div className="flex items-center justify-between mb-6">
-					<button
-						type="button"
-						onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
-						className="p-2 rounded-xl hover:bg-surface-overlay/60 text-text-secondary hover:text-text-primary transition-colors"
-					>
-						<svg
-							className="w-5 h-5"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							strokeWidth={2}
-						>
-							<path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-						</svg>
-					</button>
+				<div className="flex items-center justify-between mb-4">
 					<h2 className="text-lg font-semibold text-text-primary">
 						{format(currentMonth, "MMMM yyyy")}
 					</h2>
-					<button
-						type="button"
-						onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
-						className="p-2 rounded-xl hover:bg-surface-overlay/60 text-text-secondary hover:text-text-primary transition-colors"
-					>
-						<svg
-							className="w-5 h-5"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							strokeWidth={2}
+					<div className="flex items-center gap-1">
+						<button
+							type="button"
+							onClick={handleToday}
+							className="rounded-lg px-2.5 py-1 text-xs font-medium text-accent hover:bg-accent/10 transition-colors"
 						>
-							<path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-						</svg>
-					</button>
+							{t("today")}
+						</button>
+						<button
+							type="button"
+							onClick={handlePrevMonth}
+							className="rounded-lg p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors"
+							aria-label="Previous month"
+						>
+							<svg
+								width="16"
+								height="16"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								role="img"
+								aria-hidden="true"
+							>
+								<path d="m15 18-6-6 6-6" />
+							</svg>
+						</button>
+						<button
+							type="button"
+							onClick={handleNextMonth}
+							className="rounded-lg p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors"
+							aria-label="Next month"
+						>
+							<svg
+								width="16"
+								height="16"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								role="img"
+								aria-hidden="true"
+							>
+								<path d="m9 18 6-6-6-6" />
+							</svg>
+						</button>
+					</div>
 				</div>
 
-				{/* Day picker grid */}
+				{/* Calendar grid */}
 				<DayPicker
 					mode="single"
-					selected={selectedDay}
-					onSelect={(day) => day && setSelectedDay(day)}
 					month={currentMonth}
 					onMonthChange={setCurrentMonth}
+					selected={selectedDate}
+					onSelect={(day) => day && handleDayClick(day)}
 					showOutsideDays
+					fixedWeeks
 					classNames={{
+						root: "w-full",
 						months: "w-full",
+						month: "w-full",
+						month_caption: "hidden",
+						nav: "hidden",
 						month_grid: "w-full border-collapse",
-						weekdays: "flex",
+						weekdays: "flex w-full",
 						weekday:
-							"flex-1 text-center text-xs font-medium text-text-muted uppercase tracking-wider pb-3",
-						week: "flex",
+							"flex-1 text-center text-[11px] font-medium text-text-muted pb-2 uppercase tracking-wider",
+						week: "flex w-full",
 						day: "flex-1 relative",
 						day_button:
-							"w-full aspect-square flex flex-col items-center justify-center rounded-2xl text-sm transition-all hover:bg-surface-overlay/40 focus:outline-none focus:ring-2 focus:ring-accent/30",
-						selected: "!bg-accent/15 !text-accent font-semibold ring-2 ring-accent/30",
-						today: "font-bold text-accent",
-						outside: "text-text-muted/30",
-						hidden: "invisible",
-						nav: "hidden",
-						month_caption: "hidden",
+							"w-full aspect-square flex flex-col items-center justify-center rounded-xl text-sm transition-all duration-150 hover:bg-surface-overlay text-text-secondary font-medium",
+						selected: "!bg-accent/15 !text-accent font-semibold ring-1 ring-accent/30",
+						today: "!text-accent font-bold",
+						outside: "!text-text-muted/40",
+						disabled: "!text-text-muted/20",
 					}}
 					components={{
 						DayButton: ({ day, ...props }) => {
 							const key = format(day.date, "yyyy-MM-dd");
-							const dayEvents = eventsByDay.get(key) || [];
-							const isSelected = isSameDay(day.date, selectedDay);
+							const colors = dayEventMap.get(key);
 							return (
-								<button {...props}>
+								<button type="button" {...props}>
 									<span>{day.date.getDate()}</span>
-									{dayEvents.length > 0 && (
-										<span className="flex gap-0.5 mt-0.5">
-											{dayEvents.slice(0, 3).map((ev) => (
+									{colors && colors.length > 0 && (
+										<span className="absolute bottom-1 flex gap-0.5">
+											{colors.slice(0, 3).map((color) => (
 												<span
-													key={ev.id}
-													className={`h-1 w-1 rounded-full ${colorMap[ev.color] || "bg-accent"} ${isSelected ? "opacity-100" : "opacity-70"}`}
+													key={color}
+													className={`h-1 w-1 rounded-full ${getColorClasses(color).dot}`}
 												/>
 											))}
 										</span>
@@ -132,33 +200,41 @@ export function CalendarView() {
 						},
 					}}
 				/>
+
+				{/* Loading */}
+				{isLoading && (
+					<div className="mt-4 flex justify-center">
+						<div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+					</div>
+				)}
 			</div>
 
-			{/* Right panel — selected day */}
-			<div className="flex flex-col gap-4">
-				<div className="flex items-center justify-between">
-					<div>
-						<p className="text-xs text-text-muted uppercase tracking-wider">
-							{format(selectedDay, "EEEE")}
-						</p>
-						<p className="text-2xl font-bold text-text-primary">{format(selectedDay, "d MMM")}</p>
-					</div>
-					<button
-						type="button"
-						onClick={() => setShowForm(true)}
-						className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover transition-all shadow-lg shadow-accent/20 active:scale-[0.97]"
-					>
-						+ {t("addEvent")}
-					</button>
-				</div>
-
-				<DayDetail events={selectedEvents} />
-
-				{/* Event form modal */}
-				<AnimatePresence>
-					{showForm && <EventForm defaultDate={selectedDay} onClose={() => setShowForm(false)} />}
+			{/* Day detail panel */}
+			<div className="glass rounded-3xl p-6 min-h-[400px]">
+				<AnimatePresence mode="wait">
+					<DayDetail
+						key={selectedDate.toISOString()}
+						date={selectedDate}
+						events={events}
+						onAddEvent={handleAddEvent}
+						onEditEvent={handleEditEvent}
+						onDeleteEvent={handleDeleteEvent}
+					/>
 				</AnimatePresence>
 			</div>
+
+			{/* Event form modal */}
+			<EventForm
+				open={formOpen}
+				onClose={() => {
+					setFormOpen(false);
+					setEditEvent(null);
+				}}
+				onSubmit={handleFormSubmit}
+				initialDate={selectedDate}
+				editEvent={editEvent}
+				isPending={createMutation.isPending || updateMutation.isPending}
+			/>
 		</div>
 	);
 }

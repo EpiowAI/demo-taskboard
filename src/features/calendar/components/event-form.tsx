@@ -2,206 +2,229 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { useCreateEvent } from "../hooks/use-events";
-import { type CreateEventInput, CreateEventSchema } from "../schemas/event.schema";
+import {
+	type CreateEventInput,
+	CreateEventSchema,
+	type EventType,
+} from "@/features/calendar/schemas/event.schema";
 
-const COLORS = [
-	{ value: "blue", class: "bg-blue-400" },
-	{ value: "purple", class: "bg-purple-400" },
-	{ value: "rose", class: "bg-rose-400" },
-	{ value: "amber", class: "bg-amber-400" },
-	{ value: "emerald", class: "bg-emerald-400" },
-	{ value: "cyan", class: "bg-cyan-400" },
-] as const;
+const COLORS = ["blue", "purple", "rose", "amber", "emerald", "cyan"] as const;
+
+const colorDotMap: Record<string, string> = {
+	blue: "bg-[oklch(0.7_0.18_265)]",
+	purple: "bg-[oklch(0.65_0.2_300)]",
+	rose: "bg-[oklch(0.65_0.2_10)]",
+	amber: "bg-[oklch(0.78_0.15_80)]",
+	emerald: "bg-[oklch(0.72_0.17_155)]",
+	cyan: "bg-[oklch(0.75_0.14_200)]",
+};
 
 interface EventFormProps {
-	defaultDate: Date;
+	open: boolean;
 	onClose: () => void;
+	onSubmit: (data: CreateEventInput) => void;
+	initialDate?: Date;
+	editEvent?: EventType | null;
+	isPending?: boolean;
 }
 
-export function EventForm({ defaultDate, onClose }: EventFormProps) {
+export function EventForm({
+	open,
+	onClose,
+	onSubmit,
+	initialDate,
+	editEvent,
+	isPending,
+}: EventFormProps) {
 	const t = useTranslations("calendar");
-	const createEvent = useCreateEvent();
-	const dateStr = format(defaultDate, "yyyy-MM-dd");
+
+	const defaultStart = initialDate ? `${format(initialDate, "yyyy-MM-dd")}T09:00` : "";
+	const defaultEnd = initialDate ? `${format(initialDate, "yyyy-MM-dd")}T10:00` : "";
 
 	const {
 		register,
 		handleSubmit,
-		watch,
+		reset,
 		setValue,
+		watch,
 		formState: { errors },
 	} = useForm<CreateEventInput>({
 		resolver: zodResolver(CreateEventSchema),
 		defaultValues: {
 			title: "",
-			startAt: `${dateStr}T09:00`,
-			endAt: `${dateStr}T10:00`,
+			description: "",
+			startAt: defaultStart,
+			endAt: defaultEnd,
 			color: "blue",
 		},
 	});
 
-	const activeColor = watch("color");
+	const selectedColor = watch("color");
 
-	const onSubmit = handleSubmit(async (data) => {
-		await createEvent.mutateAsync({
+	useEffect(() => {
+		if (editEvent) {
+			reset({
+				title: editEvent.title,
+				description: editEvent.description ?? "",
+				startAt: format(new Date(editEvent.startAt), "yyyy-MM-dd'T'HH:mm"),
+				endAt: format(new Date(editEvent.endAt), "yyyy-MM-dd'T'HH:mm"),
+				color: editEvent.color,
+			});
+		} else {
+			reset({
+				title: "",
+				description: "",
+				startAt: defaultStart,
+				endAt: defaultEnd,
+				color: "blue",
+			});
+		}
+	}, [editEvent, reset, defaultStart, defaultEnd]);
+
+	const handleFormSubmit = (data: CreateEventInput) => {
+		const payload = {
 			...data,
 			startAt: new Date(data.startAt).toISOString(),
 			endAt: new Date(data.endAt).toISOString(),
-		});
-		toast.success(t("eventCreated"));
-		onClose();
-	});
+		};
+		onSubmit(payload);
+	};
 
 	return (
-		<>
-			{/* Backdrop */}
-			<motion.div
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				exit={{ opacity: 0 }}
-				onClick={onClose}
-				className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
-			/>
-
-			{/* Form panel */}
-			<motion.div
-				initial={{ opacity: 0, y: 20, scale: 0.97 }}
-				animate={{ opacity: 1, y: 0, scale: 1 }}
-				exit={{ opacity: 0, y: 20, scale: 0.97 }}
-				className="fixed inset-x-4 bottom-4 sm:inset-auto sm:right-6 sm:bottom-6 sm:w-[400px] glass rounded-3xl p-6 z-50 shadow-2xl"
-			>
-				<div className="flex items-center justify-between mb-5">
-					<h3 className="text-lg font-semibold text-text-primary">{t("newEvent")}</h3>
-					<button
-						type="button"
+		<AnimatePresence>
+			{open && (
+				<>
+					{/* Backdrop */}
+					<m.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
 						onClick={onClose}
-						className="p-1.5 rounded-xl hover:bg-surface-overlay/60 text-text-muted hover:text-text-primary transition-colors"
+						onKeyDown={(e) => e.key === "Escape" && onClose()}
+						className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+					/>
+
+					{/* Modal */}
+					<m.div
+						initial={{ opacity: 0, scale: 0.95, y: 20 }}
+						animate={{ opacity: 1, scale: 1, y: 0 }}
+						exit={{ opacity: 0, scale: 0.95, y: 20 }}
+						transition={{ type: "spring", stiffness: 400, damping: 30 }}
+						className="fixed inset-0 z-50 flex items-center justify-center p-4"
 					>
-						<svg
-							className="w-4 h-4"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							strokeWidth={2}
-						>
-							<path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-						</svg>
-					</button>
-				</div>
+						<div className="glass w-full max-w-lg rounded-3xl p-6 shadow-2xl shadow-black/20">
+							<h2 className="text-lg font-semibold text-text-primary mb-6">
+								{editEvent ? t("editEvent") : t("addEvent")}
+							</h2>
 
-				<form onSubmit={onSubmit} className="space-y-4">
-					{/* Title */}
-					<div>
-						<label
-							htmlFor="ev-title"
-							className="block text-xs font-medium text-text-secondary mb-1.5 pl-1"
-						>
-							{t("eventTitle")}
-						</label>
-						<input
-							id="ev-title"
-							{...register("title")}
-							placeholder={t("eventTitlePlaceholder")}
-							autoComplete="off"
-							autoFocus
-							className="w-full rounded-xl border border-border-subtle/40 bg-surface/60 px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
-						/>
-						{errors.title && (
-							<p className="mt-1 text-xs text-danger pl-1">{errors.title.message}</p>
-						)}
-					</div>
+							<form onSubmit={handleSubmit(handleFormSubmit)} className="flex flex-col gap-5">
+								{/* Title */}
+								<label className="block">
+									<span className="mb-1.5 block text-xs font-medium text-text-secondary">
+										{t("eventTitle")}
+									</span>
+									<input
+										{...register("title")}
+										placeholder={t("eventTitlePlaceholder")}
+										className="w-full rounded-xl border border-border-subtle bg-surface px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30 transition-colors"
+									/>
+									{errors.title && (
+										<p className="mt-1 text-xs text-danger">{errors.title.message}</p>
+									)}
+								</label>
 
-					{/* Time */}
-					<div className="grid grid-cols-2 gap-3">
-						<div>
-							<label
-								htmlFor="ev-start"
-								className="block text-xs font-medium text-text-secondary mb-1.5 pl-1"
-							>
-								{t("startTime")}
-							</label>
-							<input
-								id="ev-start"
-								type="datetime-local"
-								{...register("startAt")}
-								className="w-full rounded-xl border border-border-subtle/40 bg-surface/60 px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
-							/>
+								{/* Description */}
+								<label className="block">
+									<span className="mb-1.5 block text-xs font-medium text-text-secondary">
+										{t("eventDescription")}
+									</span>
+									<textarea
+										{...register("description")}
+										placeholder={t("eventDescriptionPlaceholder")}
+										rows={2}
+										className="w-full rounded-xl border border-border-subtle bg-surface px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30 transition-colors resize-none"
+									/>
+								</label>
+
+								{/* Start / End */}
+								<div className="grid grid-cols-2 gap-4">
+									<label className="block">
+										<span className="mb-1.5 block text-xs font-medium text-text-secondary">
+											{t("startTime")}
+										</span>
+										<input
+											type="datetime-local"
+											{...register("startAt")}
+											className="w-full rounded-xl border border-border-subtle bg-surface px-4 py-2.5 text-sm text-text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30 transition-colors [color-scheme:dark]"
+										/>
+										{errors.startAt && (
+											<p className="mt-1 text-xs text-danger">{errors.startAt.message}</p>
+										)}
+									</label>
+									<label className="block">
+										<span className="mb-1.5 block text-xs font-medium text-text-secondary">
+											{t("endTime")}
+										</span>
+										<input
+											type="datetime-local"
+											{...register("endAt")}
+											className="w-full rounded-xl border border-border-subtle bg-surface px-4 py-2.5 text-sm text-text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30 transition-colors [color-scheme:dark]"
+										/>
+										{errors.endAt && (
+											<p className="mt-1 text-xs text-danger">{errors.endAt.message}</p>
+										)}
+									</label>
+								</div>
+
+								{/* Color */}
+								<fieldset>
+									<legend className="mb-2 text-xs font-medium text-text-secondary">
+										{t("color")}
+									</legend>
+									<div className="flex gap-2">
+										{COLORS.map((color) => (
+											<button
+												key={color}
+												type="button"
+												onClick={() => setValue("color", color)}
+												className={`h-8 w-8 rounded-full transition-all ${colorDotMap[color]} ${
+													selectedColor === color
+														? "ring-2 ring-white/40 ring-offset-2 ring-offset-surface scale-110"
+														: "opacity-60 hover:opacity-100"
+												}`}
+												aria-label={t(`colors.${color}`)}
+											/>
+										))}
+									</div>
+								</fieldset>
+
+								{/* Actions */}
+								<div className="flex justify-end gap-3 pt-2">
+									<button
+										type="button"
+										onClick={onClose}
+										className="rounded-xl px-5 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors"
+									>
+										{t("cancel")}
+									</button>
+									<button
+										type="submit"
+										disabled={isPending}
+										className="rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50 transition-colors"
+									>
+										{isPending ? "…" : t("save")}
+									</button>
+								</div>
+							</form>
 						</div>
-						<div>
-							<label
-								htmlFor="ev-end"
-								className="block text-xs font-medium text-text-secondary mb-1.5 pl-1"
-							>
-								{t("endTime")}
-							</label>
-							<input
-								id="ev-end"
-								type="datetime-local"
-								{...register("endAt")}
-								className="w-full rounded-xl border border-border-subtle/40 bg-surface/60 px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
-							/>
-						</div>
-					</div>
-
-					{/* Description */}
-					<div>
-						<label
-							htmlFor="ev-desc"
-							className="block text-xs font-medium text-text-secondary mb-1.5 pl-1"
-						>
-							{t("description")}
-						</label>
-						<textarea
-							id="ev-desc"
-							{...register("description")}
-							rows={2}
-							placeholder={t("descriptionPlaceholder")}
-							className="w-full rounded-xl border border-border-subtle/40 bg-surface/60 px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all resize-none"
-						/>
-					</div>
-
-					{/* Color picker */}
-					<div>
-						<label className="block text-xs font-medium text-text-secondary mb-2 pl-1">
-							{t("color")}
-						</label>
-						<div className="flex gap-2">
-							{COLORS.map((c) => (
-								<button
-									key={c.value}
-									type="button"
-									onClick={() => setValue("color", c.value)}
-									className={`h-7 w-7 rounded-full ${c.class} transition-all ${
-										activeColor === c.value
-											? "ring-2 ring-offset-2 ring-offset-surface scale-110"
-											: "opacity-50 hover:opacity-80"
-									}`}
-								/>
-							))}
-						</div>
-					</div>
-
-					{/* Submit */}
-					<button
-						type="submit"
-						disabled={createEvent.isPending}
-						className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50 transition-all shadow-lg shadow-accent/20 active:scale-[0.98]"
-					>
-						{createEvent.isPending ? (
-							<span className="inline-flex items-center gap-1.5">
-								<span className="h-3 w-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-								{t("creating")}
-							</span>
-						) : (
-							t("createEvent")
-						)}
-					</button>
-				</form>
-			</motion.div>
-		</>
+					</m.div>
+				</>
+			)}
+		</AnimatePresence>
 	);
 }
