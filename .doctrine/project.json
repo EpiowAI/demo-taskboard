@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "project": {
+    "repo": "EpiowAI/demo-taskboard",
+    "name": "Demo Taskboard",
+    "lifecycle": "active",
+    "layer": "application",
+    "summary": "Next.js calendar and task-board demo with Hono OpenAPI routes, Drizzle PostgreSQL persistence, i18n, and a React calendar UI.",
+    "goals": [
+      "Provide the demo web application, calendar UI, and event CRUD API.",
+      "Own the Drizzle event schema, Hono OpenAPI route handlers, Next.js pages, i18n routing, and frontend event workflow.",
+      "Keep database migrations, environment configuration, and API/UI behavior coherent for the demo deployment."
+    ],
+    "nonGoals": [
+      "Own the mobile calendar client, enterprise doctrine, generic scheduling platform semantics, or shared foundation packages.",
+      "Own customer-specific workflows outside this demo app.",
+      "Own reusable scheduling contracts until they are promoted into a dedicated shared package or service."
+    ]
+  },
+  "boundaries": {
+    "owns": [
+      {
+        "name": "demo-taskboard-web-app",
+        "description": "The Next.js application, localized calendar page, UI components, and app-level provider wiring for the taskboard demo."
+      },
+      {
+        "name": "demo-taskboard-event-api",
+        "description": "The Hono OpenAPI /api/events routes, Drizzle event schema, database access, and environment contract for demo event CRUD."
+      }
+    ],
+    "doesNotOwn": [
+      "The mobile calendar client in EpiowAI/demo-calendar-mobile.",
+      "Enterprise engineering doctrine and manifest schema owned by SylphxAI/doctrine.",
+      "Reusable scheduling platform semantics, shared foundation packages, or customer-specific workflows outside this demo."
+    ],
+    "publicSurfaces": [
+      {
+        "type": "api",
+        "name": "Calendar event API",
+        "location": "src/app/api/[[...route]]/route.ts"
+      },
+      {
+        "type": "manifest",
+        "name": "Database and environment contract",
+        "location": "src/db/schema.ts, drizzle.config.ts, and .env.example"
+      },
+      {
+        "type": "documentation",
+        "name": "Package scripts and dependency metadata",
+        "location": "package.json"
+      }
+    ],
+    "allowedDependencies": [
+      {
+        "repo": "SylphxAI/doctrine",
+        "surface": "project manifest schema and engineering doctrine",
+        "direction": "peer-public"
+      }
+    ],
+    "forbiddenCouplings": [
+      "Do not put mobile-client-specific behavior into the web application API unless it is part of the documented event API contract.",
+      "Do not turn demo-only event semantics into a shared scheduling platform contract without moving that contract to an owning shared repo or service.",
+      "Do not fork doctrine standards into this repository."
+    ]
+  },
+  "documentation": {
+    "adr": {
+      "path": "docs/adr/",
+      "status": "planned"
+    },
+    "specs": {
+      "path": "src/app/api/[[...route]]/route.ts",
+      "status": "present"
+    },
+    "catalog": {
+      "path": ".doctrine/project.json",
+      "status": "present"
+    },
+    "runbooks": {
+      "path": "README.md",
+      "status": "planned"
+    },
+    "generatedReferences": {
+      "path": "src/app/api/[[...route]]/route.ts",
+      "status": "present"
+    }
+  },
+  "delivery": {
+    "ciModel": "none",
+    "requiredContexts": [],
+    "deployPath": "No repo-local GitHub CI or deployment workflow is present. The demo app is built with Next.js and requires DATABASE_URL for Drizzle-backed deployment.",
+    "productionProof": "Biome check, bun test, Next build, Drizzle migration validation, and deployment readback from the documented hosting environment.",
+    "recoveryClass": "runtime-rollback-only"
+  },
+  "adoption": {
+    "status": "baseline",
+    "gaps": [
+      {
+        "id": "repo-ci-workflow-missing",
+        "description": "The repository has package validation scripts but no GitHub PR or merge_group CI workflow recorded at this baseline.",
+        "owner": "EpiowAI/demo-taskboard",
+        "target": "before adoption.status becomes full"
+      },
+      {
+        "id": "deployment-runbook-missing",
+        "description": "The repository has an environment example but no README or runbook documenting deployment, migration replay, smoke checks, or rollback.",
+        "owner": "EpiowAI/demo-taskboard",
+        "target": "before production lifecycle promotion"
+      }
+    ]
+  }
+}
