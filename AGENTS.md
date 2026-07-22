@@ -1,20 +1,16 @@
-# Repository Agent Instructions
+# demo-taskboard — local agent notes only
 
-This repository follows the central doctrine in
-[SylphxAI/doctrine](https://github.com/SylphxAI/doctrine).
+Static engineering and delivery standards load from the active Skills runtime
+([SylphxAI/skills](https://github.com/SylphxAI/skills) is binding instruction
+SSOT). Doctrine and Mission Control are retired historical lineage and must not
+be loaded as current instruction authority.
 
-Before changing behavior, read [PROJECT.md](./PROJECT.md) and
-[.doctrine/project.json](./.doctrine/project.json). Keep enterprise policy in
-doctrine; keep only repo-local app facts here.
+Local product truth: `PROJECT.md` when present, plus the repo delivery
+declaration. Keep this file product-local; do not restate company-wide
+standards here.
 
-Useful validation for app changes:
+## Local rules
 
-- `bun run lint`
-- `bun test`
-- `bun run build`
-- `bun run db:generate` for schema changes
-
-Do not add mobile-client-specific behavior, shared scheduling platform
-semantics, or customer-specific workflow policy into this demo app. Reusable
-scheduling contracts need a dedicated owning package or service before other
-projects depend on them.
+- Prefer the narrowest affected check before full workspace runs.
+- Report layers honestly: source · CI · merge · deploy · live proof (do not collapse).
+- Never commit secrets, customer data, tokens, or private keys.
